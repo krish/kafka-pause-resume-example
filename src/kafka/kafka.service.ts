@@ -6,7 +6,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   private kafka: Kafka;
   private consumer: Consumer;
   private producer: Producer;
-  private readonly topic = 'krish-pause-resume-test2';
+  private readonly topic = 'krish-pause-resume-test';
   private isPaused = false;
 
   constructor() {
@@ -16,7 +16,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
         'localhost:9092',
       ],
     });
-    this.consumer = this.kafka.consumer({ groupId: 'krish-pause-test2' });
+    this.consumer = this.kafka.consumer({ groupId: 'krish-pause-test' });
     this.producer = this.kafka.producer();
   }
 
