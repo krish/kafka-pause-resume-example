@@ -1,4 +1,5 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { error } from 'console';
 import { Consumer, Kafka, Producer } from 'kafkajs';
 
 @Injectable()
@@ -6,17 +7,15 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   private kafka: Kafka;
   private consumer: Consumer;
   private producer: Producer;
-  private readonly topic = 'krish-pause-resume-test';
+  private readonly topic = 'krish-pause-resume-test4';
   private isPaused = false;
+  private lastOffset;
 
   constructor() {
     this.kafka = new Kafka({
-      brokers: [
-        'localhost:9092',
-        'localhost:9092',
-      ],
+      brokers: process.env.KAFKA_BROKERS.split(','),
     });
-    this.consumer = this.kafka.consumer({ groupId: 'krish-pause-test' });
+    this.consumer = this.kafka.consumer({ groupId: 'krish-pause-test4' });
     this.producer = this.kafka.producer();
   }
 
@@ -40,11 +39,14 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
         const currentDate = new Date();
         const currentSecond = currentDate.getSeconds();
 
-        console.log(`Consumed message: ${message.value.toString()}`);
+        console.log(
+          `Consumed message: ${message.value.toString()} : ${message.offset} ==================================`,
+        );
 
         if (currentSecond > 30 && !this.isPaused) {
-          console.log('Pausing consumer...');
-          await this.consumer.pause([{ topic: this.topic }]);
+          console.log('Pausing consumer........');
+          this.lastOffset = message.offset;
+          this.consumer.pause([{ topic: this.topic }]);
           this.isPaused = true;
         }
       },
@@ -65,6 +67,14 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   async resumeConsumer() {
     if (this.isPaused) {
       console.log('Resuming consumer...');
+      if (this.lastOffset !== null) {
+        // Seek to the last processed offset
+        this.consumer.seek({
+          topic: this.topic,
+          partition: 0,
+          offset: this.lastOffset,
+        });
+      }
       await this.consumer.resume([{ topic: this.topic }]);
       this.isPaused = false;
     }
