@@ -37,13 +37,18 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     await this.consumer.run({
       eachMessage: async ({ topic, partition, message }) => {
         const currentDate = new Date();
-        const currentSecond = currentDate.getSeconds();
-
-        console.log(
-          `Consumed message: ${message.value.toString()} : ${message.offset} ==================================`,
+        const messageTimestamp = new Date(
+          message.value.toString().split('Message at ')[1],
         );
 
-        if (currentSecond > 30 && !this.isPaused) {
+        const timeDifference =
+          (currentDate.getTime() - messageTimestamp.getTime()) / 1000;
+
+        console.log(
+          `Consumed message: message: ${messageTimestamp} current:${currentDate} Diff: ${timeDifference} offset: ${message.offset}`,
+        );
+
+        if (timeDifference < 60 && !this.isPaused) {
           console.log('Pausing consumer........');
           this.lastOffset = message.offset;
           this.consumer.pause([{ topic: this.topic }]);
@@ -75,7 +80,7 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
           offset: this.lastOffset,
         });
       }
-      await this.consumer.resume([{ topic: this.topic }]);
+      this.consumer.resume([{ topic: this.topic }]);
       this.isPaused = false;
     }
   }
